@@ -19,11 +19,23 @@ class OracleOfBacon
   validates_presence_of :api_key
   validate :from_does_not_equal_to
 
+  #
+  # custom validator (we ascribe the error to :to)
+  #
   def from_does_not_equal_to
-    # YOUR CODE HERE
+    if @from == @to
+      errors.add(:to, 'From cannot be the same as To')
+    end
   end
 
+  #
+  # constructor
+  #
   def initialize(api_key='')
+    @api_key = api_key
+    @from = 'Kevin Bacon'
+    @to = 'Kevin Bacon'
+    
     # your code here
   end
 
