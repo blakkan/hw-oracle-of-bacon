@@ -48,14 +48,19 @@ class OracleOfBacon
       Net::ProtocolError => e
       # convert all of these into a generic OracleOfBacon::NetworkError,
       #  but keep the original error message
-      # your code here
+      raise OracleOfBacon::NetworkError, e.message, e.backtrace  #read about 3rd argument; keeps stacktrace
     end
+    
     # your code here: create the OracleOfBacon::Response object
+    @response = Response.new(xml)
+    
   end
 
   def make_uri_from_arguments
     # your code here: set the @uri attribute to properly-escaped URI
     #   constructed from the @from, @to, @api_key arguments
+    @uri = "http://oracleofbacon.org/cgi-bin/xml?p=#{CGI.escape(@api_key)}&a=#{CGI.escape(@from)}&b=#{CGI.escape(@to)}"
+
   end
       
   class Response
@@ -69,16 +74,51 @@ class OracleOfBacon
     private
 
     def parse_response
-      if ! @doc.xpath('/error').empty?
+      
+      #puts @doc.xpath
+      
+      if ! @doc.xpath('/error').empty?   # If the error field is not empty, then we send the error message
         parse_error_response
+        
+      elsif ! @doc.xpath('/link').empty?    # it's a link
+        parse_link_response
+
+      elsif !  @doc.xpath('/spellcheck').empty?   #it's a spellcheck
+        parse_spellcheck_response
+
+      else
+        parse_unknown_response
+
       # your code here: 'elsif' clauses to handle other responses
       # for responses not matching the 3 basic types, the Response
       # object should have type 'unknown' and data 'unknown response'         
       end
     end
+    
     def parse_error_response
+      #puts "Its error"
+      #should we be raising OracleOfBacon::InvalidKey exception here?
       @type = :error
       @data = 'Unauthorized access'
+    end
+    
+    def parse_link_response
+      #puts "its a link"
+      @type = :graph
+      @data = @doc.xpath('//actor|//movie').map{|x| x.children[0].text}
+    end
+      
+    def parse_spellcheck_response
+      #puts "It's spellcheck"
+      @type = :spellcheck
+      @data = @doc.xpath('//match').map{|x| x.children[0].text}
+    end
+    
+    def parse_unknown_response
+      #puts "it's unknown"
+      #should we be raising OracleOfBacon::Invalid exception here?
+      @type = :unknown
+      @data = 'unknown reponse'
     end
   end
 end
